@@ -10,11 +10,29 @@ import { PubSub } from "graphql-subscriptions";
 
 const pubsub = new PubSub();
 
+const AlbumType = new GraphQLObjectType({
+  name: "Album",
+  fields: () => ({
+    Title: { type: GraphQLString },
+    ArtistId: { type: GraphQLInt },
+    AlbumId: { type: GraphQLInt },
+  }),
+});
+
 const ArtistType = new GraphQLObjectType({
   name: "Artist",
   fields: () => ({
     Name: { type: GraphQLString },
     ArtistId: { type: GraphQLInt },
+    Albums: {
+      type: GraphQLList(AlbumType),
+      resolve: (artist, _args, ctx) => {
+        return ctx.db.all(
+          `SELECT Title, AlbumId FROM albums WHERE ArtistId = (?)`,
+          artist.ArtistId
+        );
+      },
+    },
   }),
 });
 export const schema = new GraphQLSchema({
@@ -31,7 +49,13 @@ export const schema = new GraphQLSchema({
       artists: {
         type: GraphQLList(ArtistType),
         resolve: async (_root, _args, ctx) => {
-          const res = await ctx.db.all(`SELECT * from artists`);
+          return await ctx.db.all(`SELECT * from artists`);
+        },
+      },
+      albums: {
+        type: GraphQLList(ArtistType),
+        resolve: async (_root, _args, ctx) => {
+          const res = await ctx.db.all(`SELECT * from albums `);
           return res;
         },
       },
